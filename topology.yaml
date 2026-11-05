@@ -1,0 +1,47 @@
+name: load-balancing-lab
+ 
+topology:
+  nodes:
+    client:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add curl
+        - ip addr add 10.0.1.10/24 dev eth1
+        - ip link set eth1 up
+ 
+    lb:
+      kind: linux
+      image: nginx:alpine
+      binds:
+        - configs/nginx.conf:/etc/nginx/nginx.conf:ro
+      exec:
+        - ip addr add 10.0.1.100/24 dev eth1
+        - ip link set eth1 up
+        - ip addr add 10.0.2.100/24 dev eth2
+        - ip link set eth2 up
+        - ip addr add 10.0.3.100/24 dev eth3
+        - ip link set eth3 up
+ 
+    web1:
+      kind: linux
+      image: nginx:alpine
+      binds:
+        - configs/web1.html:/usr/share/nginx/html/index.html:ro
+      exec:
+        - ip addr add 10.0.2.10/24 dev eth1
+        - ip link set eth1 up
+ 
+    web2:
+      kind: linux
+      image: nginx:alpine
+      binds:
+        - configs/web2.html:/usr/share/nginx/html/index.html:ro
+      exec:
+        - ip addr add 10.0.3.10/24 dev eth1
+        - ip link set eth1 up
+ 
+  links:
+    - endpoints: ["client:eth1", "lb:eth1"]
+    - endpoints: ["lb:eth2", "web1:eth1"]
+    - endpoints: ["lb:eth3", "web2:eth1"]
